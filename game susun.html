@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Permainan Susun Suku Kata Mesra Disleksia</title>
+    
+    <!-- Lexend Font for Dyslexia-friendly Reading -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            font-family: 'Lexend', sans-serif;
+            letter-spacing: 0.08em;
+            word-spacing: 0.2em;
+            line-height: 1.8;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .bg-cream { background-color: #FFFDD0; color: #1f2937; }
+        .bg-pastel-blue { background-color: #E6F0FA; color: #1e3a8a; }
+        .bg-pastel-green { background-color: #E8F5E9; color: #14532d; }
+        .bg-pastel-pink { background-color: #FCE4EC; color: #831843; }
+        .bg-high-contrast { background-color: #121212; color: #FFFF00; }
+
+        .dragging {
+            opacity: 0.5;
+            transform: scale(0.95);
+        }
+
+        .drop-zone {
+            transition: all 0.2s ease-in-out;
+        }
+
+        .drop-zone.drag-over {
+            border-color: #2563EB;
+            background-color: #DBEAFE;
+            transform: scale(1.05);
+        }
+
+        @keyframes gentle-pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .animate-gentle-pulse {
+            animation: gentle-pulse 2s infinite;
+        }
+
+        .text-size-sm { font-size: 1.1rem; }
+        .text-size-md { font-size: 1.35rem; }
+        .text-size-lg { font-size: 1.6rem; }
+
+        .syllable-card {
+            box-shadow: 0 6px 0px rgba(0, 0, 0, 0.2);
+            transition: all 0.15s ease;
+        }
+        .syllable-card:active {
+            box-shadow: 0 2px 0px rgba(0, 0, 0, 0.2);
+            transform: translateY(4px);
+        }
+
+        .bg-high-contrast .bg-white {
+            background-color: #000000 !important;
+            color: #FFFF00 !important;
+            border-color: #FFFF00 !important;
+        }
+        .bg-high-contrast .syllable-card {
+            background-color: #FFFF00 !important;
+            color: #000000 !important;
+            border-color: #FFFFFF !important;
+        }
+        .bg-high-contrast .bg-amber-100, .bg-high-contrast .bg-amber-50 {
+            background-color: #1e1e1e !important;
+            color: #FFFF00 !important;
+        }
+
+        button:focus-visible, div[tabindex="0"]:focus-visible {
+            outline: 4px solid #2563EB;
+            outline-offset: 2px;
+        }
+
+        .avatar-option {
+            transition: all 0.2s ease;
+            border: 3px solid transparent;
+        }
+        .avatar-option.selected {
+            border-color: #2563EB;
+            background-color: #DBEAFE;
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body class="bg-cream min-h-screen flex flex-col transition-colors duration-300" id="main-body">
+
+    <div id="welcome-screen" class="fixed inset-0 bg-cream z-50 overflow-y-auto flex items-center justify-center p-4">
+        <div class="max-w-2xl w-full bg-white rounded-3xl p-6 md:p-8 border-4 border-amber-300 shadow-2xl flex flex-col items-center space-y-6 text-center my-auto">
+            
+            <div class="space-y-2">
+                <div class="text-6xl animate-bounce">📖✨</div>
+                <h1 class="text-3xl md:text-4xl font-black text-amber-900 tracking-wide">Kembara Batu Belah: Cabaran Suku Kata</h1>
+                <p class="text-sm md:text-base font-bold text-amber-700">Permainan Mesra Disleksia & Audio Sebutan Tepat</p>
+            </div>
+
+            <div class="w-full bg-amber-50 p-5 rounded-2xl border-2 border-amber-200 space-y-4">
+                <label for="player-name-input" class="block text-base md:text-lg font-black text-amber-900">
+                    <i class="fa-solid fa-user-tag text-amber-600"></i> Isikan Nama Pemain:
+                </label>
+                <input type="text" id="player-name-input" placeholder="Masukkan nama anda..." maxlength="15" 
+                       class="w-full text-center text-xl font-bold p-3 rounded-xl border-2 border-amber-300 focus:outline-none focus:ring-4 focus:ring-amber-400 bg-white text-gray-800 shadow-inner">
+                
+                <div>
+                    <p class="text-xs font-extrabold text-amber-800 uppercase tracking-wider mb-2">Pilih Ikon Anda:</p>
+                    <div class="flex justify-center gap-3">
+                        <button onclick="selectAvatar('🐱')" class="avatar-option selected text-3xl p-2 rounded-2xl bg-white shadow-sm" id="avatar-cat">🐱</button>
+                        <button onclick="selectAvatar('🦁')" class="avatar-option text-3xl p-2 rounded-2xl bg-white shadow-sm" id="avatar-lion">🦁</button>
+                        <button onclick="selectAvatar('🚀')" class="avatar-option text-3xl p-2 rounded-2xl bg-white shadow-sm" id="avatar-rocket">🚀</button>
+                        <button onclick="selectAvatar('⭐')" class="avatar-option text-3xl p-2 rounded-2xl bg-white shadow-sm" id="avatar-star">⭐</button>
+                        <button onclick="selectAvatar('🦄')" class="avatar-option text-3xl p-2 rounded-2xl bg-white shadow-sm" id="avatar-unicorn">🦄</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="w-full bg-blue-50/80 p-5 rounded-2xl border-2 border-blue-200 text-left space-y-3">
+                <h2 class="text-lg font-black text-blue-900 flex items-center gap-2">
+                    <i class="fa-solid fa-circle-info text-blue-600"></i> Cara Bermain:
+                </h2>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs md:text-sm font-semibold text-blue-950">
+                    <div class="bg-white p-3 rounded-xl border border-blue-100 flex items-center space-x-2">
+                        <span class="text-2xl font-black text-blue-600">1</span>
+                        <span>Tekan suku kata untuk dengar sebutan tepat.</span>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl border border-blue-100 flex items-center space-x-2">
+                        <span class="text-2xl font-black text-blue-600">2</span>
+                        <span>Susun suku kata mengikut petak jawapan.</span>
+                    </div>
+                    <div class="bg-white p-3 rounded-xl border border-blue-100 flex items-center space-x-2">
+                        <span class="text-2xl font-black text-blue-600">3</span>
+                        <span>Dengar sebutan penuh perkataan & kumpul markah! 💯</span>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="startGame()" class="w-full bg-green-600 hover:bg-green-700 text-white font-black text-xl py-4 rounded-2xl shadow-lg border-b-4 border-green-800 transition-all active:scale-95 flex items-center justify-center gap-3">
+                <i class="fa-solid fa-play text-2xl"></i>
+                <span>Mula Bermain!</span>
+            </button>
+
+        </div>
+    </div>
+
+    <header class="bg-white/90 backdrop-blur-md border-b-2 border-amber-200 px-4 py-3 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-5xl mx-auto flex flex-wrap justify-between items-center gap-3">
+            
+            <div class="flex items-center space-x-3">
+                <span id="nav-player-avatar" class="text-3xl" role="img" aria-label="Avatar">🐱</span>
+                <div>
+                    <h1 id="nav-player-name" class="font-extrabold text-xl md:text-2xl leading-tight">Pemain: Pemain</h1>
+                    <p class="text-xs font-semibold opacity-80">Mesra Disleksia & Audio Sebutan Tepat</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 md:gap-3">
+                <button onclick="showWelcomeScreen()" class="p-2 bg-amber-100 hover:bg-amber-200 rounded-2xl border border-amber-300 transition-colors flex items-center justify-center w-10 h-10" title="Laman Utama / Tukar Pemain" aria-label="Laman Utama">
+                    <i class="fa-solid fa-house text-lg text-amber-800"></i>
+                </button>
+
+                <div class="flex items-center bg-amber-50/80 p-1.5 rounded-2xl border border-amber-200">
+                    <span class="text-xs font-bold mr-1.5 ml-1 hidden sm:inline"><i class="fa-solid fa-palette"></i> Tema:</span>
+                    <button onclick="changeBg('bg-cream')" title="Kuning Krim" class="w-7 h-7 rounded-full bg-[#FFFDD0] border-2 border-amber-400 hover:scale-110 transition-transform focus:outline-none" aria-label="Warna Krim"></button>
+                    <button onclick="changeBg('bg-pastel-blue')" title="Biru Lembut" class="w-7 h-7 rounded-full bg-[#E6F0FA] border-2 border-blue-300 hover:scale-110 transition-transform focus:outline-none ml-1" aria-label="Warna Biru Lembut"></button>
+                    <button onclick="changeBg('bg-pastel-green')" title="Hijau Lembut" class="w-7 h-7 rounded-full bg-[#E8F5E9] border-2 border-green-300 hover:scale-110 transition-transform focus:outline-none ml-1" aria-label="Warna Hijau Lembut"></button>
+                    <button onclick="changeBg('bg-pastel-pink')" title="Merah Jambu Lembut" class="w-7 h-7 rounded-full bg-[#FCE4EC] border-2 border-pink-300 hover:scale-110 transition-transform focus:outline-none ml-1" aria-label="Warna Pink Lembut"></button>
+                    <button onclick="changeBg('bg-high-contrast')" title="Penglihatan Tinggi" class="w-7 h-7 rounded-full bg-black border-2 border-yellow-400 hover:scale-110 transition-transform focus:outline-none ml-1" aria-label="Penglihatan Tinggi"></button>
+                </div>
+
+                <div class="flex items-center bg-amber-50/80 p-1 rounded-2xl border border-amber-200">
+                    <button onclick="changeTextSize('sm')" class="px-2 py-1 text-xs font-extrabold rounded-xl hover:bg-amber-200" title="Saiz Teks Kecil">A-</button>
+                    <button onclick="changeTextSize('md')" class="px-2 py-1 text-sm font-extrabold rounded-xl hover:bg-amber-200 bg-amber-200" id="btn-size-md" title="Saiz Teks Sederhana">A</button>
+                    <button onclick="changeTextSize('lg')" class="px-2 py-1 text-base font-extrabold rounded-xl hover:bg-amber-200" title="Saiz Teks Besar">A+</button>
+                </div>
+
+                <button id="sound-toggle-btn" onclick="toggleSound()" class="p-2 bg-amber-100 hover:bg-amber-200 rounded-2xl border border-amber-300 transition-colors flex items-center justify-center w-10 h-10" aria-label="Tukar Bunyi">
+                    <i class="fa-solid fa-volume-high text-lg" id="sound-icon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow max-w-4xl w-full mx-auto p-4 md:p-6 flex flex-col justify-between">
+        
+        <div class="mb-4">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-3 bg-white/80 p-3 rounded-2xl border border-amber-200 shadow-sm">
+                
+                <div class="flex flex-col sm:flex-row items-center gap-2 w-full md:w-auto">
+                    <div class="flex items-center space-x-2 w-full sm:w-auto">
+                        <label for="category-select" class="font-bold text-sm whitespace-nowrap"><i class="fa-solid fa-layer-group"></i> Tahap:</label>
+                        <select id="category-select" onchange="changeCategory(this.value)" class="bg-amber-50 border-2 border-amber-300 font-bold rounded-xl px-2 py-1.5 focus:ring-2 focus:ring-blue-500 w-full sm:w-auto text-sm cursor-pointer">
+                            <option value="2-suku-kata">Tahap 1: 2 Suku Kata</option>
+                            <option value="3-suku-kata">Tahap 2: 3 Suku Kata</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center bg-amber-100 p-1 rounded-xl border border-amber-300 w-full sm:w-auto justify-center">
+                        <button id="lvl-1-btn" onclick="changeDifficultyLevel(1)" class="px-3 py-1 text-xs font-black rounded-lg transition-all bg-amber-500 text-white shadow-sm" title="Level 1: Hanya Suku Kata Jawapan">
+                            ⭐ Lvl 1 (Asas)
+                        </button>
+                        <button id="lvl-2-btn" onclick="changeDifficultyLevel(2)" class="px-3 py-1 text-xs font-black rounded-lg transition-all text-amber-900 hover:bg-amber-200" title="Level 2: Ditambah Suku Kata Pengganggu">
+                            🔥 Lvl 2 (Mencabar)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-1.5 bg-yellow-100 px-3 py-1 rounded-xl border border-yellow-300">
+                        <i class="fa-solid fa-trophy text-yellow-600 text-xl"></i>
+                        <span id="star-count" class="font-black text-xl text-yellow-900">0 / 100</span>
+                    </div>
+                    <div class="text-sm font-bold">
+                        Soalan: <span id="current-word-index">1</span> / <span id="total-words-count">5</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="game-card" class="bg-white rounded-3xl p-6 md:p-8 border-4 border-amber-300 shadow-xl flex flex-col items-center justify-center my-auto transition-all relative overflow-hidden">
+            
+            <button onclick="speakCurrentWord()" class="absolute top-4 right-4 bg-amber-100 hover:bg-amber-200 p-3 rounded-2xl border border-amber-300 flex items-center gap-2 font-bold transition-all shadow-sm active:scale-95" title="Sebut Keseluruhan Perkataan">
+                <i class="fa-solid fa-volume-high text-xl text-amber-700"></i>
+                <span class="hidden sm:inline text-sm">Dengar Kata</span>
+            </button>
+
+            <div class="text-center my-2">
+                <div id="word-visual" class="text-7xl md:text-8xl p-4 bg-amber-50 rounded-3xl border-2 border-amber-200 inline-block shadow-inner hover:scale-105 transition-transform cursor-pointer" onclick="speakCurrentWord()" title="Klik untuk mendengar perkataan">
+                    🐱
+                </div>
+                <p id="word-meaning-hint" class="text-xs md:text-sm font-semibold opacity-70 mt-2">Tekan suku kata untuk mendengar sebutan tepat</p>
+            </div>
+
+            <div class="w-full my-6">
+                <p class="text-center text-xs font-bold opacity-60 uppercase tracking-wider mb-2">Petak Jawapan</p>
+                <div id="drop-slots-container" class="flex flex-wrap justify-center gap-3 md:gap-4 min-h-[90px] p-3 bg-amber-50/70 border-2 border-dashed border-amber-300 rounded-2xl">
+                </div>
+            </div>
+
+            <div class="w-full mt-2">
+                <p class="text-center text-xs font-bold opacity-60 uppercase tracking-wider mb-2">Pilihan Suku Kata (Tekan / Heret)</p>
+                <div id="syllables-pool" class="flex flex-wrap justify-center gap-3 md:gap-4 min-h-[90px] p-3 bg-amber-100/50 rounded-2xl border border-amber-200">
+                </div>
+            </div>
+
+            <div class="flex flex-wrap justify-center items-center gap-3 mt-8 w-full">
+                <button onclick="provideHint()" class="bg-amber-500 hover:bg-amber-600 text-white font-extrabold px-5 py-3 rounded-2xl shadow-md flex items-center gap-2 transition-all active:scale-95 animate-gentle-pulse">
+                    <i class="fa-solid fa-lightbulb"></i>
+                    <span>Petunjuk</span>
+                </button>
+                
+                <button onclick="resetCurrentWord()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold px-5 py-3 rounded-2xl shadow-sm flex items-center gap-2 transition-all active:scale-95">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span>Muat Semula</span>
+                </button>
+
+                <button id="next-btn" onclick="nextWord()" class="bg-green-600 hover:bg-green-700 text-white font-black px-6 py-3 rounded-2xl shadow-md flex items-center gap-2 transition-all active:scale-95 hidden">
+                    <span>Seterusnya</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+            </div>
+
+        </div>
+
+    </main>
+
+    <div id="completion-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 border-4 border-yellow-400 shadow-2xl text-center relative">
+            <div id="modal-badge-icon" class="text-6xl mb-3">🏆</div>
+            <h2 class="text-2xl md:text-3xl font-black text-amber-900 mb-2">Syabas & Tahniah!</h2>
+            
+            <div class="bg-yellow-50 p-4 rounded-2xl border border-yellow-200 mb-4 flex flex-col justify-center items-center gap-1">
+                <span class="text-xs font-extrabold text-amber-700 uppercase tracking-wider">Markah Keseluruhan:</span>
+                <span class="text-4xl font-black text-amber-900" id="modal-final-stars">0 / 100</span>
+            </div>
+
+            <div class="bg-blue-50 p-4 rounded-2xl border-2 border-blue-200 mb-6 text-left">
+                <div class="flex items-center gap-2 mb-1">
+                    <i class="fa-solid fa-heart text-pink-500 text-lg"></i>
+                    <h3 class="font-extrabold text-blue-900 text-sm">Ulasan:</h3>
+                </div>
+                <p id="modal-feedback-text" class="text-sm font-semibold text-blue-950 leading-relaxed">
+                    Ulasan membina akan dipaparkan di sini.
+                </p>
+            </div>
+
+            <div class="flex flex-col gap-3">
+                <button onclick="restartCategory()" class="bg-green-600 hover:bg-green-700 text-white font-extrabold py-3.5 px-6 rounded-2xl shadow-lg transition-all active:scale-95">
+                    Main Semula Tahap Ini
+                </button>
+                <button onclick="closeModal()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-3 px-6 rounded-2xl transition-all">
+                    Tutup
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // INTEGRASI GOOGLE APPS SCRIPT (GAME 2 - G2)
+        // ==========================================
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbygoJHOVcHHw4PBkzJ1V-xlhjg7gEdSyzNhq1pkff1OtpPlazHsixAstsuwW8AEW-AN/exec";
+
+        function hantarDataKeGoogleSheet(namaPemain, markahG2, ulasanG2) {
+            if (!WEB_APP_URL || WEB_APP_URL === "") {
+                console.warn("[Google Sheets] Web App URL belum dimasukkan.");
+                return;
+            }
+
+            const dataGame = {
+                targetStory: "BATU BELAH BATU BERTANGKUP",
+                playerName: namaPemain,
+                gameType: "G2",          // Menandakan data ini untuk Game 2
+                score: markahG2,         // Markah Game 2
+                ulasanGame: ulasanG2     // Ulasan khusus Game 2
+            };
+
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(dataGame)
+            })
+            .then(() => {
+                console.log("Data Game 2 (G2) berjaya dihantar ke Google Sheets!");
+            })
+            .catch((error) => {
+                console.error("Ralat semasa menghantar data G2 ke Google Sheets:", error);
+            });
+        }
+
+        const WORD_DATABASE = {
+            '2-suku-kata': [
+                { word: 'BATU', syllables: ['BA', 'TU'], visual: '🪨' },
+                { word: 'IKAN', syllables: ['I', 'KAN'], visual: '🐟' },
+                { word: 'IBU', syllables: ['I', 'BU'], visual: '👩🏻‍🍼' },
+                { word: 'ADIK', syllables: ['A', 'DIK'], visual: '👦🏻' },
+                { word: 'TELUR', syllables: ['TE', 'LUR'], visual: '🥚' },
+                { word: 'SEDIH', syllables: ['SE', 'DIH'], visual: '😭' },
+                { word: 'KAKAK', syllables: ['KA', 'KAK'], visual: '👧🏻' },
+                { word: 'ORANG', syllables: ['O', 'RANG'], visual: '🧑‍🤝‍🧑' },
+                { word: 'BEKAS', syllables: ['BE', 'KAS'], visual: '🥣' },
+                { word: 'LIHAT', syllables: ['LI', 'HAT'], visual: '👀' }
+            ],
+            '3-suku-kata': [
+                { word: 'BERCAKAP', syllables: ['BER', 'CA', 'KAP'], visual: '🗣️' },
+                { word: 'MENCARI', syllables: ['MEN', 'CA', 'RI'], visual: '🔎' },
+                { word: 'MEREKA', syllables: ['ME', 'RE', 'KA'], visual: '🧑‍🤝‍🧑' },
+                { word: 'DITELAN', syllables: ['DI', 'TE', 'LAN'], visual: '🍽️' },
+                { word: 'MENJAGA', syllables: ['MEN', 'JA', 'GA'], visual: '👩‍👧‍👦' },
+                { word: 'BERLARI', syllables: ['BER', 'LA', 'RI'], visual: '🏃🏻' }
+            ]
+        };
+
+        const EXTRA_DISTRACTORS = ['CA', 'LO', 'PA', 'SING', 'KANG', 'TUK', 'LAN', 'NGI', 'GAK', 'BANG', 'LI', 'RO'];
+        const PRAISE_PHRASES = ["Syabas!", "Hebat!", "Luar biasa!", "Bijak!", "Bagus sekali!"];
+
+        let currentCategory = '2-suku-kata'; 
+        let difficultyLevel = 1; 
+        let currentWordsList = [];
+        let currentWordIndex = 0;
+        let currentWordObj = null;
+        let userAnswers = []; 
+        let poolSyllables = []; 
+        let soundEnabled = true;
+        let correctAnswersCount = 0; 
+        let hasFailedCurrentQuestion = false; 
+        let playerName = 'Pemain';
+        let playerAvatar = '🐱';
+        
+        const AUDIO_FOLDER = 'audio/'; 
+        let currentAudio = null;
+
+        function speakSystemText(text) {
+            return new Promise((resolve) => {
+                if (!soundEnabled || !('speechSynthesis' in window)) {
+                    resolve();
+                    return;
+                }
+
+                window.speechSynthesis.cancel(); 
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ms-MY';
+                utterance.rate = 0.85;
+
+                const voices = window.speechSynthesis.getVoices();
+                let selectedVoice = voices.find(v => v.lang.toLowerCase().replace('_', '-').startsWith('ms'));
+                if (!selectedVoice) {
+                    selectedVoice = voices.find(v => v.lang.toLowerCase().replace('_', '-').startsWith('id'));
+                }
+                if (selectedVoice) utterance.voice = selectedVoice;
+
+                utterance.onend = resolve;
+                utterance.onerror = resolve;
+
+                window.speechSynthesis.speak(utterance);
+            });
+        }
+
+        function playSyllableAudio(fileName) {
+            return new Promise((resolve) => {
+                if (!soundEnabled) {
+                    resolve();
+                    return;
+                }
+
+                const audioPath = `${AUDIO_FOLDER}${fileName.toLowerCase()}.mp3`;
+                
+                if (currentAudio) {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                }
+
+                currentAudio = new Audio(audioPath);
+
+                currentAudio.play().then(() => {
+                    currentAudio.onended = resolve;
+                }).catch((err) => {
+                    speakSystemText(fileName).then(resolve);
+                });
+            });
+        }
+
+        function selectAvatar(avatar) {
+            playerAvatar = avatar;
+            document.querySelectorAll('.avatar-option').forEach(btn => btn.classList.remove('selected'));
+            
+            if (avatar === '🐱') document.getElementById('avatar-cat')?.classList.add('selected');
+            if (avatar === '🦁') document.getElementById('avatar-lion')?.classList.add('selected');
+            if (avatar === '🚀') document.getElementById('avatar-rocket')?.classList.add('selected');
+            if (avatar === '⭐') document.getElementById('avatar-star')?.classList.add('selected');
+            if (avatar === '🦄') document.getElementById('avatar-unicorn')?.classList.add('selected');
+        }
+
+        function startGame() {
+            const nameInput = document.getElementById('player-name-input').value.trim();
+            playerName = nameInput !== '' ? nameInput : 'Pemain';
+            
+            document.getElementById('nav-player-name').innerText = `Pemain: ${playerName}`;
+            document.getElementById('nav-player-avatar').innerText = playerAvatar;
+            
+            document.getElementById('welcome-screen').classList.add('hidden');
+            
+            speakSystemText(`Selamat bermain, ${playerName}! Jom susun suku kata.`);
+            
+            loadCategory(currentCategory);
+        }
+
+        function showWelcomeScreen() {
+            document.getElementById('welcome-screen').classList.remove('hidden');
+        }
+
+        function changeDifficultyLevel(lvl) {
+            difficultyLevel = lvl;
+            const btn1 = document.getElementById('lvl-1-btn');
+            const btn2 = document.getElementById('lvl-2-btn');
+
+            if (lvl === 1) {
+                btn1.className = "px-3 py-1 text-xs font-black rounded-lg transition-all bg-amber-500 text-white shadow-sm";
+                btn2.className = "px-3 py-1 text-xs font-black rounded-lg transition-all text-amber-900 hover:bg-amber-200";
+                speakSystemText("Level 1 Asas dipilih.");
+            } else {
+                btn2.className = "px-3 py-1 text-xs font-black rounded-lg transition-all bg-red-500 text-white shadow-sm";
+                btn1.className = "px-3 py-1 text-xs font-black rounded-lg transition-all text-amber-900 hover:bg-amber-200";
+                speakSystemText("Level 2 Mencabar dimulakan!");
+            }
+
+            loadWord(currentWordIndex);
+        }
+
+        function changeCategory(catKey) {
+            currentCategory = catKey;
+            loadCategory(catKey);
+        }
+
+        function loadCategory(catKey) {
+            currentCategory = catKey;
+            currentWordsList = [...WORD_DATABASE[catKey]];
+            currentWordIndex = 0;
+            correctAnswersCount = 0;
+            updateScoreDisplay();
+            loadWord(currentWordIndex);
+        }
+
+        function updateScoreDisplay() {
+            const total = currentWordsList.length;
+            const scorePercent = total > 0 ? Math.round((correctAnswersCount / total) * 100) : 0;
+            document.getElementById('star-count').innerText = `${scorePercent} / 100`;
+        }
+
+        function loadWord(index) {
+            if (index >= currentWordsList.length) {
+                showCompletionModal();
+                return;
+            }
+
+            currentWordObj = currentWordsList[index];
+            userAnswers = new Array(currentWordObj.syllables.length).fill(null);
+            hasFailedCurrentQuestion = false;
+
+            let allSyllables = [...currentWordObj.syllables];
+
+            if (difficultyLevel === 2) {
+                const numDistractors = currentWordObj.syllables.length >= 3 ? 2 : 1;
+                const filteredDistractors = EXTRA_DISTRACTORS.filter(s => !allSyllables.includes(s));
+                
+                filteredDistractors.sort(() => Math.random() - 0.5);
+                const chosenDistractors = filteredDistractors.slice(0, numDistractors);
+                
+                allSyllables = [...allSyllables, ...chosenDistractors];
+            }
+
+            poolSyllables = allSyllables.map((syl, i) => ({
+                id: `syl-${i}-${syl}`,
+                text: syl,
+                used: false
+            }));
+            
+            poolSyllables.sort(() => Math.random() - 0.5);
+
+            document.getElementById('current-word-index').innerText = index + 1;
+            document.getElementById('total-words-count').innerText = currentWordsList.length;
+            document.getElementById('word-visual').innerText = currentWordObj.visual;
+            document.getElementById('next-btn').classList.add('hidden');
+
+            renderSlots();
+            renderSyllablePool();
+        }
+
+        function renderSlots() {
+            const container = document.getElementById('drop-slots-container');
+            container.innerHTML = '';
+
+            currentWordObj.syllables.forEach((_, idx) => {
+                const slot = document.createElement('div');
+                slot.className = 'drop-zone flex items-center justify-center w-24 h-20 md:w-28 md:h-24 bg-white border-3 border-dashed border-amber-400 rounded-2xl shadow-inner text-2xl md:text-3xl font-extrabold cursor-pointer transition-all';
+                slot.dataset.index = idx;
+
+                slot.addEventListener('dragover', handleDragOver);
+                slot.addEventListener('dragleave', handleDragLeave);
+                slot.addEventListener('drop', handleDrop);
+
+                if (userAnswers[idx]) {
+                    slot.classList.remove('border-dashed', 'bg-white');
+                    slot.classList.add('bg-amber-200', 'border-solid', 'border-amber-500', 'text-amber-950');
+                    slot.innerText = userAnswers[idx].text;
+
+                    slot.addEventListener('click', () => {
+                        const targetSylText = userAnswers[idx].text;
+                        playSyllableAudio(targetSylText);
+                        removeSyllableFromSlot(idx);
+                    });
+                } else {
+                    slot.innerText = '';
+                }
+
+                container.appendChild(slot);
+            });
+        }
+
+        function renderSyllablePool() {
+            const poolContainer = document.getElementById('syllables-pool');
+            poolContainer.innerHTML = '';
+
+            poolSyllables.forEach((item) => {
+                if (!item.used) {
+                    const card = createSyllableCard(item);
+                    poolContainer.appendChild(card);
+                }
+            });
+        }
+
+        function createSyllableCard(item) {
+            const card = document.createElement('div');
+            card.className = 'syllable-card flex items-center justify-center w-24 h-20 md:w-28 md:h-24 bg-amber-400 hover:bg-amber-300 text-amber-950 text-2xl md:text-3xl font-black rounded-2xl cursor-pointer border-2 border-amber-500 transition-all select-none';
+            card.innerText = item.text;
+            card.draggable = true;
+
+            card.addEventListener('click', () => {
+                handleSyllableSelect(item);
+            });
+
+            card.addEventListener('dragstart', (e) => {
+                card.classList.add('dragging');
+                e.dataTransfer.setData('text/plain', item.id);
+            });
+
+            card.addEventListener('dragend', () => {
+                card.classList.remove('dragging');
+            });
+
+            return card;
+        }
+
+        function handleSyllableSelect(item) {
+            const emptyIdx = userAnswers.findIndex(val => val === null);
+            if (emptyIdx !== -1) {
+                userAnswers[emptyIdx] = item;
+                item.used = true;
+                renderSlots();
+                renderSyllablePool();
+
+                playSyllableAudio(item.text).then(() => {
+                    checkAnswer();
+                });
+            }
+        }
+
+        function removeSyllableFromSlot(slotIdx) {
+            const item = userAnswers[slotIdx];
+            if (item) {
+                item.used = false;
+                userAnswers[slotIdx] = null;
+                renderSlots();
+                renderSyllablePool();
+            }
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('drag-over');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('drag-over');
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            const slot = e.currentTarget;
+            slot.classList.remove('drag-over');
+            
+            const slotIdx = parseInt(slot.dataset.index);
+            const sylId = e.dataTransfer.getData('text/plain');
+            const item = poolSyllables.find(s => s.id === sylId);
+
+            if (item && !item.used) {
+                if (userAnswers[slotIdx]) {
+                    userAnswers[slotIdx].used = false;
+                }
+
+                userAnswers[slotIdx] = item;
+                item.used = true;
+
+                renderSlots();
+                renderSyllablePool();
+
+                playSyllableAudio(item.text).then(() => {
+                    checkAnswer();
+                });
+            }
+        }
+
+        function checkAnswer() {
+            const isFilled = userAnswers.every(val => val !== null);
+            if (!isFilled) return;
+
+            const userWord = userAnswers.map(item => item.text).join('');
+            const targetWord = currentWordObj.word;
+
+            if (userWord === targetWord) {
+                if (!hasFailedCurrentQuestion) {
+                    correctAnswersCount++;
+                    updateScoreDisplay();
+                }
+
+                document.getElementById('next-btn').classList.remove('hidden');
+
+                if (typeof confetti === 'function') {
+                    confetti({
+                        particleCount: 80,
+                        spread: 60,
+                        origin: { y: 0.7 }
+                    });
+                }
+
+                playSyllableAudio(targetWord).then(() => {
+                    const praise = PRAISE_PHRASES[Math.floor(Math.random() * PRAISE_PHRASES.length)];
+                    speakSystemText(`${praise} Jawapan anda tepat.`);
+                });
+            } else {
+                hasFailedCurrentQuestion = true;
+
+                if (difficultyLevel === 1) {
+                    speakSystemText("Kurang tepat. Sila cuba lagi!");
+                    setTimeout(() => {
+                        userAnswers.forEach(item => { if (item) item.used = false; });
+                        userAnswers = new Array(currentWordObj.syllables.length).fill(null);
+                        renderSlots();
+                        renderSyllablePool();
+                    }, 1200);
+                } else {
+                    speakSystemText("Kurang tepat. Mari teruskan ke soalan seterusnya.");
+                    setTimeout(() => {
+                        nextWord();
+                    }, 1500);
+                }
+            }
+        }
+
+        function speakCurrentWord() {
+            if (currentWordObj) {
+                playSyllableAudio(currentWordObj.word);
+            }
+        }
+
+        function provideHint() {
+            if (!currentWordObj) return;
+
+            for (let i = 0; i < currentWordObj.syllables.length; i++) {
+                const correctSyl = currentWordObj.syllables[i];
+                if (!userAnswers[i] || userAnswers[i].text !== correctSyl) {
+                    speakSystemText("Suku kata seterusnya ialah").then(() => {
+                        playSyllableAudio(correctSyl);
+                    });
+                    break;
+                }
+            }
+        }
+
+        function resetCurrentWord() {
+            loadWord(currentWordIndex);
+        }
+
+        function nextWord() {
+            currentWordIndex++;
+            loadWord(currentWordIndex);
+        }
+
+        function getConstructiveFeedback(score) {
+            if (score >= 90) {
+                return {
+                    icon: '🏆',
+                    text: `Luar biasa, ${playerName}! Mata dan ingatan anda sangat tajam hari ini. Anda membaca setiap suku kata dengan cemerlang!`
+                };
+            } else if (score >= 70) {
+                return {
+                    icon: '🌟',
+                    text: `Hebat sekali, ${playerName}! Usaha gigih anda membuktikan anda makin pandai mengeja. Teruskan semangat ini!`
+                };
+            } else if (score >= 50) {
+                return {
+                    icon: '👍',
+                    text: `Bagus, ${playerName}! Setiap suku kata yang anda susun menjadikan fikiran anda lebih kuat. Anda semakin hampir!`
+                };
+            } else if (score >= 30) {
+                return {
+                    icon: '🌱',
+                    text: `Permulaan yang baik, ${playerName}! Belajar mengeja perlukan latihan. Teruskan mencuba, sikit lagi nak jadi juara!`
+                };
+            } else {
+                return {
+                    icon: '❤️',
+                    text: `Jangan putus asa, ${playerName}! Belajar membaca ialah satu kembara hebat. Setiap kesilapan membantu otak anda belajar!`
+                };
+            }
+        }
+
+        function showCompletionModal() {
+            const total = currentWordsList.length;
+            const finalScore = total > 0 ? Math.round((correctAnswersCount / total) * 100) : 0;
+            const feedback = getConstructiveFeedback(finalScore);
+
+            document.getElementById('modal-final-stars').innerText = `${finalScore} / 100`;
+            document.getElementById('modal-badge-icon').innerText = feedback.icon;
+            document.getElementById('modal-feedback-text').innerText = feedback.text;
+            
+            // HANTAR DATA GAME 2 (G2) KE GOOGLE SHEETS
+            hantarDataKeGoogleSheet(playerName, finalScore, feedback.text);
+
+            document.getElementById('completion-modal').classList.remove('hidden');
+            
+            if (currentAudio) {
+                currentAudio.pause();
+            }
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('completion-modal').classList.add('hidden');
+        }
+
+        function restartCategory() {
+            closeModal();
+            loadCategory(currentCategory);
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            if (soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high text-lg';
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark text-lg';
+                if (currentAudio) currentAudio.pause();
+                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+            }
+        }
+
+        function changeBg(bgClass) {
+            const body = document.getElementById('main-body');
+            body.className = `min-h-screen flex flex-col transition-colors duration-300 ${bgClass}`;
+        }
+
+        function changeTextSize(size) {
+            const body = document.getElementById('main-body');
+            body.classList.remove('text-size-sm', 'text-size-md', 'text-size-lg');
+            
+            if (size === 'sm') body.classList.add('text-size-sm');
+            if (size === 'md') body.classList.add('text-size-md');
+            if (size === 'lg') body.classList.add('text-size-lg');
+        }
+
+        window.onload = function() {
+            loadCategory(currentCategory);
+        };
+    </script>
+</body>
+</html>

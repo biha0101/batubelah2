@@ -325,6 +325,41 @@
     </div>
 
     <script>
+        // ==========================================
+        // INTEGRASI GOOGLE APPS SCRIPT (GAME 2 - G2)
+        // ==========================================
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbygoJHOVcHHw4PBkzJ1V-xlhjg7gEdSyzNhq1pkff1OtpPlazHsixAstsuwW8AEW-AN/exec";
+
+        function hantarDataKeGoogleSheet(namaPemain, markahG2, ulasanG2) {
+            if (!WEB_APP_URL || WEB_APP_URL === "") {
+                console.warn("[Google Sheets] Web App URL belum dimasukkan.");
+                return;
+            }
+
+            const dataGame = {
+                targetStory: "BATU BELAH BATU BERTANGKUP",
+                playerName: namaPemain,
+                gameType: "G2",          // Menandakan data ini untuk Game 2
+                score: markahG2,         // Markah Game 2
+                ulasanGame: ulasanG2     // Ulasan khusus Game 2
+            };
+
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(dataGame)
+            })
+            .then(() => {
+                console.log("Data Game 2 (G2) berjaya dihantar ke Google Sheets!");
+            })
+            .catch((error) => {
+                console.error("Ralat semasa menghantar data G2 ke Google Sheets:", error);
+            });
+        }
+
         const WORD_DATABASE = {
             '2-suku-kata': [
                 { word: 'BATU', syllables: ['BA', 'TU'], visual: '🪨' },
@@ -744,6 +779,9 @@
             document.getElementById('modal-final-stars').innerText = `${finalScore} / 100`;
             document.getElementById('modal-badge-icon').innerText = feedback.icon;
             document.getElementById('modal-feedback-text').innerText = feedback.text;
+
+            // HANTAR DATA GAME 2 (G2) KE GOOGLE SHEETS
+            hantarDataKeGoogleSheet(playerName, finalScore, feedback.text);
 
             // Memaparkan senarai soalan yang salah
             const wrongSection = document.getElementById('wrong-answers-section');

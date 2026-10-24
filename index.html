@@ -388,41 +388,40 @@
         let playerName = 'Pemain';
         let playerAvatar = '🐱';
         
-        const AUDIO_FOLDER = 'audio/'; 
+        // ==========================================
+        // TETAPAN AUDIO & SUARA AUTOMATIK (FIXED)
+        // ==========================================
+        
+        // Ditinggalkan kosong "" kerana fail MP3 berada di luar bersama index.html
+        const AUDIO_FOLDER = ''; 
         let currentAudio = null;
 
+        // 1. Fungsi Sebutan Suara Automatik (Text-to-Speech ms-MY)
         function speakWord(text) {
-  // 1. Semak sama ada browser menyokong speechSynthesis
-  if ('speechSynthesis' in window) {
-    
-    // Hentikan sebutan sedia ada jika ada yang sedang dimainkan
-    window.speechSynthesis.cancel();
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Hentikan sebutan sedia ada
 
-    // 2. Cipta objek sebutan baharu dengan teks yang diberikan
-    const utterance = new SpeechSynthesisUtterance(text);
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ms-MY'; // Set Bahasa Melayu
 
-    // 3. Tetapkan bahasa kepada Bahasa Melayu (Malaysia)
-    utterance.lang = 'ms-MY';
+                // Cari enjin suara Bahasa Melayu jika wujud pada peranti
+                const voices = window.speechSynthesis.getVoices();
+                const malayVoice = voices.find(voice => voice.lang === 'ms-MY' || voice.lang.startsWith('ms'));
+                
+                if (malayVoice) {
+                    utterance.voice = malayVoice;
+                }
 
-    // 4. (Pilihan) Cari enjin suara Bahasa Melayu yang dipasang pada peranti
-    const voices = window.speechSynthesis.getVoices();
-    const malayVoice = voices.find(voice => voice.lang === 'ms-MY' || voice.lang.startsWith('ms'));
-    
-    if (malayVoice) {
-      utterance.voice = malayVoice;
-    }
+                utterance.rate = 0.9; // Kelajuan sebutan
+                utterance.pitch = 1.0;
 
-    // Tetapan kelajuan dan kelarian suara (optional)
-    utterance.rate = 0.9; // Kelajuan (0.1 hingga 10, default 1)
-    utterance.pitch = 1.0; // Kelarian ton (0 hingga 2, default 1)
+                window.speechSynthesis.speak(utterance);
+            } else {
+                console.warn('Browser anda tidak menyokong fungsi Text-to-Speech.');
+            }
+        }
 
-    // 5. Mainkan suara
-    window.speechSynthesis.speak(utterance);
-  } else {
-    console.warn('Browser anda tidak menyokong fungsi Text-to-Speech.');
-  }
-}
-
+        // 2. Fungsi Memainkan Fail MP3 dengan Fallback Suara Automatik
         function playSyllableAudio(fileName) {
             return new Promise((resolve) => {
                 if (!soundEnabled) {
@@ -430,6 +429,7 @@
                     return;
                 }
 
+                // Menyusun laluan fail MP3 secara tepat (contoh: 'ba.mp3')
                 const audioPath = `${AUDIO_FOLDER}${fileName.toLowerCase()}.mp3`;
                 
                 if (currentAudio) {
@@ -442,11 +442,13 @@
                 currentAudio.play().then(() => {
                     currentAudio.onended = resolve;
                 }).catch((err) => {
-                    speakSystemText(fileName).then(resolve);
+                    // Jika fail MP3 gagal ditemui / gagal dimainkan, guna suara automatik ms-MY
+                    console.warn(`[Audio Info] Gagal memainkan ${audioPath}. Guna suara automatik:`, err);
+                    speakWord(fileName);
+                    resolve();
                 });
             });
         }
-
         function selectAvatar(avatar) {
             playerAvatar = avatar;
             document.querySelectorAll('.avatar-option').forEach(btn => btn.classList.remove('selected'));

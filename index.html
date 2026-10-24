@@ -684,7 +684,6 @@
                     playAudioFile('tepat');
                 });
             } else {
-                // Merekod kesilapan pengguna jika belum direkodkan untuk soalan ini
                 if (!hasFailedCurrentQuestion) {
                     wrongAttemptsList.push({
                         visual: currentWordObj.visual,
@@ -692,23 +691,24 @@
                         correctWord: targetWord,
                         syllables: currentWordObj.syllables.join('-')
                     });
+                    hasFailedCurrentQuestion = true;
                 }
 
-                hasFailedCurrentQuestion = true;
-
                 if (difficultyLevel === 1) {
-                    playAudioFile('cuba_lagi');
-                    setTimeout(() => {
-                        userAnswers.forEach(item => { if (item) item.used = false; });
-                        userAnswers = new Array(currentWordObj.syllables.length).fill(null);
-                        renderSlots();
-                        renderSyllablePool();
-                    }, 1200);
+                    playAudioFile('cuba_lagi').then(() => {
+                        setTimeout(() => {
+                            userAnswers.forEach(item => { if (item) item.used = false; });
+                            userAnswers = new Array(currentWordObj.syllables.length).fill(null);
+                            renderSlots();
+                            renderSyllablePool();
+                        }, 500);
+                    });
                 } else {
-                    playAudioFile('salah_next');
-                    setTimeout(() => {
-                        nextWord();
-                    }, 1500);
+                    playAudioFile('cuba_lagi').then(() => {
+                        setTimeout(() => {
+                            nextWord();
+                        }, 500);
+                    });
                 }
             }
         }

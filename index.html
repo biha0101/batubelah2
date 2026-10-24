@@ -283,7 +283,7 @@
     </main>
 
     <div id="completion-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 border-4 border-yellow-400 shadow-2xl text-center relative">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 md:p-8 border-4 border-yellow-400 shadow-2xl text-center relative max-h-[90vh] overflow-y-auto">
             <div id="modal-badge-icon" class="text-6xl mb-3">🏆</div>
             <h2 class="text-2xl md:text-3xl font-black text-amber-900 mb-2">Syabas & Tahniah!</h2>
             
@@ -292,14 +292,25 @@
                 <span class="text-4xl font-black text-amber-900" id="modal-final-stars">0 / 100</span>
             </div>
 
-            <div class="bg-blue-50 p-4 rounded-2xl border-2 border-blue-200 mb-6 text-left">
+            <div class="bg-blue-50 p-4 rounded-2xl border-2 border-blue-200 mb-4 text-left">
                 <div class="flex items-center gap-2 mb-1">
                     <i class="fa-solid fa-heart text-pink-500 text-lg"></i>
-                    <h3 class="font-extrabold text-blue-900 text-sm">Ulasan:</h3>
+                    <h3 class="font-extrabold text-blue-900 text-sm">Ulasan Pendorong:</h3>
                 </div>
                 <p id="modal-feedback-text" class="text-sm font-semibold text-blue-950 leading-relaxed">
                     Ulasan membina akan dipaparkan di sini.
                 </p>
+            </div>
+
+            <!-- Bahagian Paparan Senarai Soalan Salah -->
+            <div id="wrong-answers-section" class="bg-red-50 p-4 rounded-2xl border-2 border-red-200 mb-6 text-left hidden">
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fa-solid fa-circle-xmark text-red-500 text-lg"></i>
+                    <h3 class="font-extrabold text-red-900 text-sm">Perkataan Yang Perlu Diperbaiki:</h3>
+                </div>
+                <div id="wrong-answers-list" class="space-y-2 text-xs md:text-sm font-semibold text-red-950">
+                    <!-- Senarai soalan salah akan dimasukkan di sini oleh JS -->
+                </div>
             </div>
 
             <div class="flex flex-col gap-3">
@@ -314,41 +325,6 @@
     </div>
 
     <script>
-        // ==========================================
-        // INTEGRASI GOOGLE APPS SCRIPT (GAME 2 - G2)
-        // ==========================================
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbygoJHOVcHHw4PBkzJ1V-xlhjg7gEdSyzNhq1pkff1OtpPlazHsixAstsuwW8AEW-AN/exec";
-
-        function hantarDataKeGoogleSheet(namaPemain, markahG2, ulasanG2) {
-            if (!WEB_APP_URL || WEB_APP_URL === "") {
-                console.warn("[Google Sheets] Web App URL belum dimasukkan.");
-                return;
-            }
-
-            const dataGame = {
-                targetStory: "BATU BELAH BATU BERTANGKUP",
-                playerName: namaPemain,
-                gameType: "G2",          // Menandakan data ini untuk Game 2
-                score: markahG2,         // Markah Game 2
-                ulasanGame: ulasanG2     // Ulasan khusus Game 2
-            };
-
-            fetch(WEB_APP_URL, {
-                method: "POST",
-                mode: "no-cors",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(dataGame)
-            })
-            .then(() => {
-                console.log("Data Game 2 (G2) berjaya dihantar ke Google Sheets!");
-            })
-            .catch((error) => {
-                console.error("Ralat semasa menghantar data G2 ke Google Sheets:", error);
-            });
-        }
-
         const WORD_DATABASE = {
             '2-suku-kata': [
                 { word: 'BATU', syllables: ['BA', 'TU'], visual: '🪨' },
@@ -372,8 +348,7 @@
             ]
         };
 
-        const EXTRA_DISTRACTORS = ['CA', 'LO', 'PA', 'SING', 'KANG', 'TUK', 'LAN', 'NGI', 'GAK', 'BANG', 'LI', 'RO'];
-        const PRAISE_PHRASES = ["Syabas!", "Hebat!", "Luar biasa!", "Bijak!", "Bagus sekali!"];
+        const EXTRA_DISTRACTORS = ['CA', 'ME', 'PA', 'SING', 'KANG', 'TUK', 'LAN', 'NGI', 'GAK', 'BANG', 'LI', 'RI'];
 
         let currentCategory = '2-suku-kata'; 
         let difficultyLevel = 1; 
@@ -385,51 +360,20 @@
         let soundEnabled = true;
         let correctAnswersCount = 0; 
         let hasFailedCurrentQuestion = false; 
+        let wrongAttemptsList = []; // Array untuk menyimpan jawapan salah pemain
         let playerName = 'Pemain';
         let playerAvatar = '🐱';
         
-        // ==========================================
-        // TETAPAN AUDIO & SUARA AUTOMATIK (FIXED)
-        // ==========================================
-        
-        // Ditinggalkan kosong "" kerana fail MP3 berada di luar bersama index.html
-        const AUDIO_FOLDER = ''; 
+        const AUDIO_FOLDER = 'audio/'; 
         let currentAudio = null;
 
-        // 1. Fungsi Sebutan Suara Automatik (Text-to-Speech ms-MY)
-        function speakWord(text) {
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel(); // Hentikan sebutan sedia ada
-
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'ms-MY'; // Set Bahasa Melayu
-
-                // Cari enjin suara Bahasa Melayu jika wujud pada peranti
-                const voices = window.speechSynthesis.getVoices();
-                const malayVoice = voices.find(voice => voice.lang === 'ms-MY' || voice.lang.startsWith('ms'));
-                
-                if (malayVoice) {
-                    utterance.voice = malayVoice;
-                }
-
-                utterance.rate = 0.9; // Kelajuan sebutan
-                utterance.pitch = 1.0;
-
-                window.speechSynthesis.speak(utterance);
-            } else {
-                console.warn('Browser anda tidak menyokong fungsi Text-to-Speech.');
-            }
-        }
-
-        // 2. Fungsi Memainkan Fail MP3 dengan Fallback Suara Automatik
-        function playSyllableAudio(fileName) {
+        function playAudioFile(fileName) {
             return new Promise((resolve) => {
                 if (!soundEnabled) {
                     resolve();
                     return;
                 }
 
-                // Menyusun laluan fail MP3 secara tepat (contoh: 'ba.mp3')
                 const audioPath = `${AUDIO_FOLDER}${fileName.toLowerCase()}.mp3`;
                 
                 if (currentAudio) {
@@ -442,13 +386,12 @@
                 currentAudio.play().then(() => {
                     currentAudio.onended = resolve;
                 }).catch((err) => {
-                    // Jika fail MP3 gagal ditemui / gagal dimainkan, guna suara automatik ms-MY
-                    console.warn(`[Audio Info] Gagal memainkan ${audioPath}. Guna suara automatik:`, err);
-                    speakWord(fileName);
+                    console.warn(`Fail audio tidak dijumpai: ${audioPath}`);
                     resolve();
                 });
             });
         }
+
         function selectAvatar(avatar) {
             playerAvatar = avatar;
             document.querySelectorAll('.avatar-option').forEach(btn => btn.classList.remove('selected'));
@@ -469,8 +412,7 @@
             
             document.getElementById('welcome-screen').classList.add('hidden');
             
-            speakSystemText(`Selamat bermain, ${playerName}! Jom susun suku kata.`);
-            
+            playAudioFile('selamat_bermain');
             loadCategory(currentCategory);
         }
 
@@ -486,11 +428,11 @@
             if (lvl === 1) {
                 btn1.className = "px-3 py-1 text-xs font-black rounded-lg transition-all bg-amber-500 text-white shadow-sm";
                 btn2.className = "px-3 py-1 text-xs font-black rounded-lg transition-all text-amber-900 hover:bg-amber-200";
-                speakSystemText("Level 1 Asas dipilih.");
+                playAudioFile('level1');
             } else {
                 btn2.className = "px-3 py-1 text-xs font-black rounded-lg transition-all bg-red-500 text-white shadow-sm";
                 btn1.className = "px-3 py-1 text-xs font-black rounded-lg transition-all text-amber-900 hover:bg-amber-200";
-                speakSystemText("Level 2 Mencabar dimulakan!");
+                playAudioFile('level2');
             }
 
             loadWord(currentWordIndex);
@@ -506,6 +448,7 @@
             currentWordsList = [...WORD_DATABASE[catKey]];
             currentWordIndex = 0;
             correctAnswersCount = 0;
+            wrongAttemptsList = []; // Reset senarai salah apabila tukar tahap
             updateScoreDisplay();
             loadWord(currentWordIndex);
         }
@@ -575,7 +518,7 @@
 
                     slot.addEventListener('click', () => {
                         const targetSylText = userAnswers[idx].text;
-                        playSyllableAudio(targetSylText);
+                        playAudioFile(targetSylText);
                         removeSyllableFromSlot(idx);
                     });
                 } else {
@@ -628,7 +571,7 @@
                 renderSlots();
                 renderSyllablePool();
 
-                playSyllableAudio(item.text).then(() => {
+                playAudioFile(item.text).then(() => {
                     checkAnswer();
                 });
             }
@@ -673,7 +616,7 @@
                 renderSlots();
                 renderSyllablePool();
 
-                playSyllableAudio(item.text).then(() => {
+                playAudioFile(item.text).then(() => {
                     checkAnswer();
                 });
             }
@@ -702,15 +645,24 @@
                     });
                 }
 
-                playSyllableAudio(targetWord).then(() => {
-                    const praise = PRAISE_PHRASES[Math.floor(Math.random() * PRAISE_PHRASES.length)];
-                    speakSystemText(`${praise} Jawapan anda tepat.`);
+                playAudioFile(targetWord).then(() => {
+                    playAudioFile('tepat');
                 });
             } else {
+                // Merekod kesilapan pengguna jika belum direkodkan untuk soalan ini
+                if (!hasFailedCurrentQuestion) {
+                    wrongAttemptsList.push({
+                        visual: currentWordObj.visual,
+                        wrongWord: userWord,
+                        correctWord: targetWord,
+                        syllables: currentWordObj.syllables.join('-')
+                    });
+                }
+
                 hasFailedCurrentQuestion = true;
 
                 if (difficultyLevel === 1) {
-                    speakSystemText("Kurang tepat. Sila cuba lagi!");
+                    playAudioFile('cuba_lagi');
                     setTimeout(() => {
                         userAnswers.forEach(item => { if (item) item.used = false; });
                         userAnswers = new Array(currentWordObj.syllables.length).fill(null);
@@ -718,7 +670,7 @@
                         renderSyllablePool();
                     }, 1200);
                 } else {
-                    speakSystemText("Kurang tepat. Mari teruskan ke soalan seterusnya.");
+                    playAudioFile('salah_next');
                     setTimeout(() => {
                         nextWord();
                     }, 1500);
@@ -728,7 +680,7 @@
 
         function speakCurrentWord() {
             if (currentWordObj) {
-                playSyllableAudio(currentWordObj.word);
+                playAudioFile(currentWordObj.word);
             }
         }
 
@@ -738,8 +690,8 @@
             for (let i = 0; i < currentWordObj.syllables.length; i++) {
                 const correctSyl = currentWordObj.syllables[i];
                 if (!userAnswers[i] || userAnswers[i].text !== correctSyl) {
-                    speakSystemText("Suku kata seterusnya ialah").then(() => {
-                        playSyllableAudio(correctSyl);
+                    playAudioFile('petunjuk').then(() => {
+                        playAudioFile(correctSyl);
                     });
                     break;
                 }
@@ -792,17 +744,37 @@
             document.getElementById('modal-final-stars').innerText = `${finalScore} / 100`;
             document.getElementById('modal-badge-icon').innerText = feedback.icon;
             document.getElementById('modal-feedback-text').innerText = feedback.text;
-            
-            // HANTAR DATA GAME 2 (G2) KE GOOGLE SHEETS
-            hantarDataKeGoogleSheet(playerName, finalScore, feedback.text);
 
+            // Memaparkan senarai soalan yang salah
+            const wrongSection = document.getElementById('wrong-answers-section');
+            const wrongListContainer = document.getElementById('wrong-answers-list');
+            wrongListContainer.innerHTML = '';
+
+            if (wrongAttemptsList.length > 0) {
+                wrongSection.classList.remove('hidden');
+                wrongAttemptsList.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'bg-white p-2.5 rounded-xl border border-red-200 flex items-center justify-between shadow-sm';
+                    row.innerHTML = `
+                        <div class="flex items-center space-x-2">
+                            <span class="text-2xl">${item.visual}</span>
+                            <div>
+                                <span class="line-through text-gray-400 mr-1.5">${item.wrongWord}</span>
+                                <span class="font-black text-green-600">${item.correctWord}</span>
+                            </div>
+                        </div>
+                        <span class="text-xs bg-amber-100 text-amber-900 font-bold px-2 py-1 rounded-lg border border-amber-200">${item.syllables}</span>
+                    `;
+                    wrongListContainer.appendChild(row);
+                });
+            } else {
+                wrongSection.classList.add('hidden');
+            }
+            
             document.getElementById('completion-modal').classList.remove('hidden');
             
             if (currentAudio) {
                 currentAudio.pause();
-            }
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.cancel();
             }
         }
 
@@ -823,7 +795,6 @@
             } else {
                 icon.className = 'fa-solid fa-volume-xmark text-lg';
                 if (currentAudio) currentAudio.pause();
-                if ('speechSynthesis' in window) window.speechSynthesis.cancel();
             }
         }
 

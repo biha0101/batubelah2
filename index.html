@@ -391,32 +391,37 @@
         const AUDIO_FOLDER = 'audio/'; 
         let currentAudio = null;
 
-        function speakSystemText(text) {
-            return new Promise((resolve) => {
-                if (!soundEnabled || !('speechSynthesis' in window)) {
-                    resolve();
-                    return;
-                }
+        function speakWord(text) {
+  // 1. Semak sama ada browser menyokong speechSynthesis
+  if ('speechSynthesis' in window) {
+    
+    // Hentikan sebutan sedia ada jika ada yang sedang dimainkan
+    window.speechSynthesis.cancel();
 
-                window.speechSynthesis.cancel(); 
+    // 2. Cipta objek sebutan baharu dengan teks yang diberikan
+    const utterance = new SpeechSynthesisUtterance(text);
 
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'ms-MY';
-                utterance.rate = 0.85;
+    // 3. Tetapkan bahasa kepada Bahasa Melayu (Malaysia)
+    utterance.lang = 'ms-MY';
 
-                const voices = window.speechSynthesis.getVoices();
-                let selectedVoice = voices.find(v => v.lang.toLowerCase().replace('_', '-').startsWith('ms'));
-                if (!selectedVoice) {
-                    selectedVoice = voices.find(v => v.lang.toLowerCase().replace('_', '-').startsWith('id'));
-                }
-                if (selectedVoice) utterance.voice = selectedVoice;
+    // 4. (Pilihan) Cari enjin suara Bahasa Melayu yang dipasang pada peranti
+    const voices = window.speechSynthesis.getVoices();
+    const malayVoice = voices.find(voice => voice.lang === 'ms-MY' || voice.lang.startsWith('ms'));
+    
+    if (malayVoice) {
+      utterance.voice = malayVoice;
+    }
 
-                utterance.onend = resolve;
-                utterance.onerror = resolve;
+    // Tetapan kelajuan dan kelarian suara (optional)
+    utterance.rate = 0.9; // Kelajuan (0.1 hingga 10, default 1)
+    utterance.pitch = 1.0; // Kelarian ton (0 hingga 2, default 1)
 
-                window.speechSynthesis.speak(utterance);
-            });
-        }
+    // 5. Mainkan suara
+    window.speechSynthesis.speak(utterance);
+  } else {
+    console.warn('Browser anda tidak menyokong fungsi Text-to-Speech.');
+  }
+}
 
         function playSyllableAudio(fileName) {
             return new Promise((resolve) => {

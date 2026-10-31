@@ -328,7 +328,7 @@
         // ==========================================
         // INTEGRASI GOOGLE APPS SCRIPT (GAME 2 - G2)
         // ==========================================
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbygoJHOVcHHw4PBkzJ1V-xlhjg7gEdSyzNhq1pkff1OtpPlazHsixAstsuwW8AEW-AN/exec";
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyDsjoikwEU7qKmyP4-C3s5Vw20i7ZIu5myo53Q2BU2vyOnFo_TfwriW0p9FyuEaMXeoA/exec";
 
         function hantarDataKeGoogleSheet(namaPemain, markahG2, ulasanG2) {
             if (!WEB_APP_URL || WEB_APP_URL === "") {
@@ -337,11 +337,11 @@
             }
 
             const dataGame = {
-                targetStory: "BATU BELAH BATU BERTANGKUP",
-                playerName: namaPemain,
-                gameType: "G2",          // Menandakan data ini untuk Game 2
-                score: markahG2,         // Markah Game 2
-                ulasanGame: ulasanG2     // Ulasan khusus Game 2
+                nama: namaPemain,
+                book: "KHAS BATU BELAH BATU BERTANGKUP",
+                game: 2,                 // Menandakan data ini untuk Game 2
+                skor: markahG2,          // Markah Game 2
+                ulasan: ulasanG2 || ""   // Ulasan khusus Game 2
             };
 
             fetch(WEB_APP_URL, {
@@ -395,7 +395,7 @@
         let soundEnabled = true;
         let correctAnswersCount = 0; 
         let hasFailedCurrentQuestion = false; 
-        let wrongAttemptsList = []; // Array untuk menyimpan jawapan salah pemain
+        let wrongAttemptsList = [];
         let playerName = 'Pemain';
         let playerAvatar = '🐱';
         
@@ -483,7 +483,7 @@
             currentWordsList = [...WORD_DATABASE[catKey]];
             currentWordIndex = 0;
             correctAnswersCount = 0;
-            wrongAttemptsList = []; // Reset senarai salah apabila tukar tahap
+            wrongAttemptsList = []; 
             updateScoreDisplay();
             loadWord(currentWordIndex);
         }
